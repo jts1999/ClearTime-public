@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClearTime</title>
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:#f4f7fb;
+  color:#172033;
+}
+.wrap{max-width:760px;margin:auto;padding:16px}
+.card{
+  background:white;
+  border:1px solid #d9e0ea;
+  border-radius:18px;
+  padding:16px;
+  margin:14px 0;
+}
+h1{margin-bottom:4px}
+h2{font-size:19px}
+p,.muted{color:#667085}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr}
+}
+label{font-size:13px;font-weight:600}
+input,select,button{
+  width:100%;
+  padding:12px;
+  min-height:46px;
+  margin-top:5px;
+  border:1px solid #d9e0ea;
+  border-radius:12px;
+  font:inherit;
+  background:white;
+}
+.types{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-bottom:14px;
+}
+.types button{
+  margin:0;
+  font-weight:700;
+}
+.types button.active{
+  border-color:#2f6fed;
+  background:#eaf1ff;
+  color:#17469c;
+}
+.primary{
+  background:#2f6fed;
+  color:white;
+  border:none;
+  font-weight:700;
+}
+.row{
+  display:flex;
+  gap:8px;
+}
+.row button{
+  width:auto;
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+@media(max-width:600px){
+  .stats{grid-template-columns:1fr}
+}
+.stat{
+  background:#f7f9fc;
+  border-radius:14px;
+  padding:13px;
+}
+.value{
+  font-size:24px;
+  font-weight:750;
+  margin-top:5px;
+}
+.warning{
+  margin-top:12px;
+  padding:12px;
+  border:1px solid #ebcaca;
+  background:#fff8f8;
+  border-radius:14px;
+  color:#613030;
+  font-size:13px;
+}
+.drinkrow{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  border:1px solid #d9e0ea;
+  border-radius:12px;
+  padding:11px;
+  margin-top:8px;
+}
+.drinkrow button{
+  width:auto;
+}
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<h1>ClearTime</h1>
+<p>Track drinks, UK alcohol units and a rough alcohol-processing estimate.</p>
+
+<section class="card">
+<h2>Your details</h2>
+
+<div class="grid">
+
+<label>
+Weight (kg)
+<input id="weight" type="number" value="75">
+</label>
+
+<div>
+<label>Height</label>
+
+<div class="row">
+<button id="cmBtn" type="button">cm</button>
+<button id="ftBtn" type="button">ft / in</button>
+</div>
+
+<div id="cmHeight">
+<input id="heightCm" type="number" value="175">
+</div>
+
+<div id="ftHeight" class="row hidden">
+<input id="heightFt" type="number" value="5" placeholder="Feet">
+<input id="heightIn" type="number" value="9" placeholder="Inches">
+</div>
+
+</div>
+
+<label>
+Sex
+<select id="sex">
+<option>Male</option>
+<option>Female</option>
+<option>Prefer not to say</option>
+</select>
+</label>
+
+</div>
+</section>
+
+<section class="card">
+
+<h2>Add a drink</h2>
+
+<div class="types">
+<button data-type="lager" class="active">Lager</button>
+<button data-type="cider">Cider</button>
+<button data-type="vodka">Vodka</button>
+<button data-type="gin">Gin</button>
+<button data-type="wine">Wine</button>
+<button data-type="other">Other</button>
+</div>
+
+<div class="grid">
+
+<label>
+Brand
+<select id="brand"></select>
+</label>
+
+<label>
+Serving size
+<select id="serving"></select>
+</label>
+
+<label>
+Volume (ml)
+<input id="volume" type="number">
+</label>
+
+<label>
+ABV (%)
+<input id="abv" type="number" step="0.1">
+</label>
+
+</div>
+
+<div class="stat" style="margin-top:12px">
+<div class="muted">This drink</div>
+<div class="value"><span id="singleUnits">0.00</span> units</div>
+</div>
+
+<button id="addDrink" class="primary">Add drink</button>
+
+</section>
+
+<section class="card">
+
+<h2>Current session</h2>
+
+<div class="stats">
+
+<div class="stat">
+<div class="muted">Drinks logged</div>
+<div class="value" id="drinkCount">0</div>
+</div>
+
+<div class="stat">
+<div class="muted">Total units</div>
+<div class="value" id="totalUnits">0.00</div>
+</div>
+
+<div class="stat">
+<div class="muted">Estimated alcohol-free by</div>
+<div class="value" id="alcoholFree">—</div>
+</div>
+
+</div>
+
+<div class="warning">
+<strong>Estimate only.</strong>
+Alcohol processing varies between individuals.
+Do not use this estimate to decide whether you are safe or legal to drive,
+cycle, operate machinery or perform safety-critical work.
+</div>
+
+<div id="history"></div>
+
+<button id="reset">Reset session</button>
+
+</section>
+
+</div>
+
+<script>
+
+const drinkData = {
+
+lager:{
+brands:[
+["Stella Artois",4.6],
+["Carling",4.0],
+["Foster's",3.7],
+["Carlsberg",3.4],
+["Carlsberg Export",4.8],
+["Peroni",5.0],
+["Birra Moretti",4.6],
+["San Miguel",5.0],
+["Heineken",5.0],
+["Madri",4.6],
+["Coors",4.0],
+["Corona",4.5],
+["Budweiser",4.5],
+["Amstel",4.1],
+["Estrella Damm",4.6],
+["Tyskie",5.0],
+["Other lager",4.5]
+],
+servings:[
+["Half pint — 284 ml",284],
+["Pint — 568 ml",568],
+["Bottle — 330 ml",330],
+["Can — 440 ml",440],
+["Can — 500 ml",500]
+]
+},
+
+cider:{
+brands:[
+["Strongbow Original",4.5],
+["Strongbow Dark Fruit",4.0],
+["Thatchers Gold",4.8],
+["Thatchers Haze",4.5],
+["Magners",4.5],
+["Kopparberg Mixed Fruit",4.0],
+["Kopparberg Strawberry & Lime",4.0],
+["Rekorderlig",4.0],
+["Old Mout",4.0],
+["Inch's",4.5],
+["Aspall",5.5],
+["Bulmers",4.5],
+["Henry Westons Vintage",8.2],
+["Scrumpy Jack",6.0],
+["Other cider",4.5]
+],
+servings:[
+["Half pint — 284 ml",284],
+["Pint — 568 ml",568],
+["Bottle — 330 ml",330],
+["Bottle/can — 440 ml",440],
+["Bottle/can — 500 ml",500]
+]
+},
+
+vodka:{
+brands:[
+["Smirnoff Red",37.5],
+["Absolut",40],
+["Grey Goose",40],
+["Cîroc",40],
+["Russian Standard",38],
+["Au Vodka",35.2],
+["Belvedere",40],
+["Ketel One",40],
+["Finlandia",40],
+["Stolichnaya",40],
+["Other vodka",40]
+],
+servings:[
+["Single — 25 ml",25],
+["Double — 50 ml",50],
+["Single — 35 ml",35],
+["Double — 70 ml",70]
+]
+},
+
+gin:{
+brands:[
+["Gordon's",37.5],
+["Bombay Sapphire",40],
+["Tanqueray",43.1],
+["Beefeater",40],
+["Hendrick's",41.4],
+["Whitley Neill",43],
+["Sipsmith",41.6],
+["Plymouth Gin",41.2],
+["Malfy",41],
+["Roku",43],
+["Other gin",40]
+],
+servings:[
+["Single — 25 ml",25],
+["Double — 50 ml",50],
+["Single — 35 ml",35],
+["Double — 70 ml",70]
+]
+},
+
+wine:{
+brands:[
+["Red wine",13],
+["White wine",12.5],
+["Rosé",12],
+["Prosecco",11],
+["Champagne",12],
+["Sauvignon Blanc",12.5],
+["Pinot Grigio",12],
+["Chardonnay",13],
+["Malbec",13.5],
+["Merlot",13.5],
+["Cabernet Sauvignon",13.5],
+["Pinot Noir",13],
+["Rioja",13.5],
+["Other wine",12.5]
+],
+servings:[
+["Small glass — 125 ml",125],
+["Medium glass — 175 ml",175],
+["Large glass — 250 ml",250],
+["Bottle — 750 ml",750]
+]
+},
+
+other:{
+brands:[
+["Guinness Draught",4.2],
+["John Smith's",3.4],
+["BrewDog Punk IPA",5.4],
+["Camden Pale Ale",4.0],
+["WKD Blue",4.0],
+["Smirnoff Ice",4.0],
+["Jack Daniel's",40],
+["Jameson",40],
+["Bacardi",37.5],
+["Captain Morgan",35],
+["Malibu",21],
+["Baileys",17],
+["Disaronno",28],
+["Jägermeister",35],
+["Custom drink",5]
+],
+servings:[
+["25 ml",25],
+["35 ml",35],
+["50 ml",50],
+["70 ml",70],
+["125 ml",125],
+["175 ml",175],
+["250 ml",250],
+["330 ml",330],
+["440 ml",440],
+["500 ml",500],
+["Pint — 568 ml",568],
+["750 ml",750]
+]
+}
+
+};
+
+let type="lager";
+let drinks=[];
+
+const brand=document.getElementById("brand");
+const serving=document.getElementById("serving");
+const volume=document.getElementById("volume");
+const abv=document.getElementById("abv");
+
+function loadType(newType){
+
+type=newType;
+
+document.querySelectorAll(".types button").forEach(button=>{
+button.classList.toggle("active",button.dataset.type===type);
+});
+
+brand.innerHTML="";
+
+drinkData[type].brands.forEach(([name,strength])=>{
+
+const option=document.createElement("option");
+
+option.value=name;
+option.textContent=name+" — "+strength+"%";
+option.dataset.abv=strength;
+
+brand.appendChild(option);
+
+});
+
+serving.innerHTML="";
+
+drinkData[type].servings.forEach(([label,ml])=>{
+
+const option=document.createElement("option");
+
+option.value=ml;
+option.textContent=label;
+
+serving.appendChild(option);
+
+});
+
+if(type==="lager" || type==="cider"){
+serving.value="568";
+volume.value=568;
+}else{
+volume.value=drinkData[type].servings[0][1];
+}
+
+abv.value=brand.options[0].dataset.abv;
+
+updateUnits();
+
+}
+
+document.querySelectorAll(".types button").forEach(button=>{
+
+button.addEventListener("click",()=>{
+
+loadType(button.dataset.type);
+
+});
+
+});
+
+brand.addEventListener("change",()=>{
+
+abv.value=brand.options[brand.selectedIndex].dataset.abv;
+
+updateUnits();
+
+});
+
+serving.addEventListener("change",()=>{
+
+volume.value=serving.value;
+
+updateUnits();
+
+});
+
+volume.addEventListener("input",updateUnits);
+
+abv.addEventListener("input",updateUnits);
+
+function updateUnits(){
+
+const units=(Number(volume.value)*Number(abv.value))/1000;
+
+document.getElementById("singleUnits").textContent=
+isFinite(units)?units.toFixed(2):"0.00";
+
+}
+
+document.getElementById("addDrink").addEventListener("click",()=>{
+
+const v=Number(volume.value);
+const a=Number(abv.value);
+
+if(!v || !a) return;
+
+drinks.push({
+name:brand.value,
+volume:v,
+abv:a,
+units:v*a/1000
+});
+
+render();
+
+});
+
+function render(){
+
+const total=drinks.reduce((sum,d)=>sum+d.units,0);
+
+document.getElementById("drinkCount").textContent=drinks.length;
+
+document.getElementById("totalUnits").textContent=total.toFixed(2);
+
+if(total){
+
+const minutes=Math.ceil(total*60);
+
+const time=new Date(Date.now()+minutes*60000);
+
+document.getElementById("alcoholFree").textContent=
+time.toLocaleTimeString([],{
+hour:"2-digit",
+minute:"2-digit"
+});
+
+}else{
+
+document.getElementById("alcoholFree").textContent="—";
+
+}
+
+const history=document.getElementById("history");
+
+history.innerHTML="";
+
+drinks.forEach((drink,index)=>{
+
+const row=document.createElement("div");
+
+row.className="drinkrow";
+
+const info=document.createElement("div");
+
+info.innerHTML=
+"<strong>"+drink.name+"</strong>"+
+"<div class='muted'>"+
+drink.volume+" ml · "+
+drink.abv+"% · "+
+drink.units.toFixed(2)+" units"+
+"</div>";
+
+const remove=document.createElement("button");
+
+remove.textContent="Remove";
+
+remove.onclick=()=>{
+
+drinks.splice(index,1);
+
+render();
+
+};
+
+row.appendChild(info);
+
+row.appendChild(remove);
+
+history.appendChild(row);
+
+});
+
+}
+
+document.getElementById("reset").onclick=()=>{
+
+drinks=[];
+
+render();
+
+};
+
+document.getElementById("ftBtn").onclick=()=>{
+
+const cm=Number(document.getElementById("heightCm").value);
+
+const inches=cm/2.54;
+
+document.getElementById("heightFt").value=
+Math.floor(inches/12);
+
+document.getElementById("heightIn").value=
+Math.round(inches%12);
+
+document.getElementById("cmHeight").classList.add("hidden");
+
+document.getElementById("ftHeight").classList.remove("hidden");
+
+};
+
+document.getElementById("cmBtn").onclick=()=>{
+
+const ft=Number(document.getElementById("heightFt").value);
+
+const inches=Number(document.getElementById("heightIn").value);
+
+document.getElementById("heightCm").value=
+Math.round((ft*12+inches)*2.54);
+
+document.getElementById("ftHeight").classList.add("hidden");
+
+document.getElementById("cmHeight").classList.remove("hidden");
+
+};
+
+loadType("lager");
+
+render();
+
+</script>
+</body>
+</html>
